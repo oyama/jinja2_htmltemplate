@@ -31,6 +31,14 @@ This code outputs the following Jinja2 template:
         {% endfor %}
         </ul>
 
+Install
+-------
+
+.. code-block:: bash
+
+     pip install git+https://github.com/oyama/jinja2_htmltemplate
+
+
 Builds
 ------
 .. code-block:: bash
