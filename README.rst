@@ -35,8 +35,8 @@ This code outputs the following Jinja2 template:
 Builds
 ------
 ```
-git clone git@github.com:find-job/jinja2_htmltemplate src/github.com/find-job/jinja2_htmltemplate
-src/github.com/find-job/jinja2_htmltemplate
+git clone git@github.com:oyama/jinja2_htmltemplate src/github.com/oyama/jinja2_htmltemplate
+src/github.com/oyama/jinja2_htmltemplate
 docker build -t jinja2_htmltemplate .
 docker run --rm -it -v $(pwd):/root/jinja2_htmltemplate -w /root/jinja2_htmltemplate jinja2_htmltemplate python setup.py nosetests
 ```

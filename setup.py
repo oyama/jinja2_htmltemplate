@@ -12,5 +12,5 @@ setup(
     description="Translate from Perl HTML::Template template to Python Jinja2 template",
     license="PSF",
     keywords="perl jinja template convert",
-    url="https://github.com/find-job/jinja2_htmltemplate",
+    url="https://github.com/oyama/jinja2_htmltemplate",
 )
