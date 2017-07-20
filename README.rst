@@ -22,15 +22,14 @@ Here a small example:
 
 This code outputs the following Jinja2 template:
 
-.. code-block:: html
+.. code-block:: jinja
+
         <title>{{ title }}<title>
         <ul>
         {% for _for_object_users in users %}
             <li><a href="{{ _for_object_users.url }}">{{ _for_object_users.username }}</a></li>
         {% endfor %}
         </ul>
-
-
 
 Builds
 ------
