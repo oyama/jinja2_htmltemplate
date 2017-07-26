@@ -1,39 +1,57 @@
-import re
 import enum
+import re
+
 
 class Tokens(enum.IntFlag):
-    TEXT            = 1
-    TMPL_VAR        = 2
-    TMPL_LOOP       = 3
-    TMPL_LOOP_END   = 4
-    TMPL_INCLUDE    = 5
-    TMPL_IF         = 6
-    TMPL_IF_END     = 7
-    TMPL_ELSE       = 8
-    TMPL_UNLESS     = 9
+    TEXT = 1
+    TMPL_VAR = 2
+    TMPL_LOOP = 3
+    TMPL_LOOP_END = 4
+    TMPL_INCLUDE = 5
+    TMPL_IF = 6
+    TMPL_IF_END = 7
+    TMPL_ELSE = 8
+    TMPL_UNLESS = 9
     TMPL_UNLESS_END = 10
-    UNKNOWN         = 11
+    UNKNOWN = 11
+
 
 class TokenIndex(enum.IntFlag):
-    TYPE    = 0
-    TEXT    = 1
-    NAME    = 2
-    ESCAPE  = 3
+    TYPE = 0
+    TEXT = 1
+    NAME = 2
+    ESCAPE = 3
     DEFAULT = 4
 
 
+html_template_tokenizer_re = re.compile(
+    r"(?:"
+    r"<(?:TMPL_VAR|TMPL_LOOP|TMPL_INCLUDE|TMPL_IF|TMPL_ELSE|TMPL_UNLESS)"
+    r"(?:\s+[^>]+)?>"
+    r"|"
+    r"</(?:TMPL_VAR|TMPL_LOOP|TMPL_INCLUDE|TMPL_IF|TMPL_ELSE|TMPL_UNLESS)>"
+    r"|.+?"
+    r")",
+    flags=re.DOTALL)
+
+tmpl_token_re = re.compile(
+    r"<(/)?"
+    r"(TMPL_VAR|TMPL_LOOP|TMPL_INCLUDE|TMPL_IF|TMPL_ELSE|TMPL_UNLESS)"
+    r"\s*([^>]+)?"
+    r">")
+
 
 class HtmlTemplate(object):
+
     def from_string(self, source):
         tokens = self.tokenize(source)
         return self.translate(tokens)
 
     def tokenize(self, source):
-        tokenizer = re.compile("(?:<(?:TMPL_VAR|TMPL_LOOP|TMPL_INCLUDE|TMPL_IF|TMPL_ELSE|TMPL_UNLESS)(?:\s+[^>]+)?>|</(?:TMPL_VAR|TMPL_LOOP|TMPL_INCLUDE|TMPL_IF|TMPL_ELSE|TMPL_UNLESS)>|.+?)", flags=re.DOTALL)
         tokens = []
         buffer = []
         for line in source.splitlines(keepends=True):
-            for m in tokenizer.finditer(line):
+            for m in html_template_tokenizer_re.finditer(line):
                 token = m.group()
                 if len(token) == 1:
                     buffer.append(token)
@@ -57,7 +75,9 @@ class HtmlTemplate(object):
             if token[TokenIndex.TYPE] == Tokens.TEXT:
                 handler.text(token[TokenIndex.TEXT])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_VAR:
-                handler.tmpl_var(token[TokenIndex.NAME], token[TokenIndex.ESCAPE], token[TokenIndex.DEFAULT])
+                handler.tmpl_var(token[TokenIndex.NAME],
+                                 token[TokenIndex.ESCAPE],
+                                 token[TokenIndex.DEFAULT])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_LOOP:
                 handler.tmpl_loop(token[TokenIndex.NAME])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_LOOP_END:
@@ -79,26 +99,28 @@ class HtmlTemplate(object):
         return handler.get_template()
 
     def _parse_tmpl_token(self, token):
-        tmpl_tokenizer = re.compile("<(/)?(TMPL_VAR|TMPL_LOOP|TMPL_INCLUDE|TMPL_IF|TMPL_ELSE|TMPL_UNLESS)\s*([^>]+)?>")
-        m = tmpl_tokenizer.match(token)
+        m = tmpl_token_re.match(token)
         if not m:
             return (Tokens.UNKNOWN, token)
         if m.group(2) == 'TMPL_VAR':
             attr = m.group(3)
-            return (Tokens.TMPL_VAR, token, self._get_name(attr), self._get_escape(attr), self._get_default(attr))
-        elif m.group(2) == 'TMPL_LOOP' and m.group(1) == None:
+            return (Tokens.TMPL_VAR,
+                    token,
+                    self._get_name(attr),
+                    self._get_escape(attr), self._get_default(attr))
+        elif m.group(2) == 'TMPL_LOOP' and m.group(1) is None:
             return (Tokens.TMPL_LOOP, token, self._get_name(m.group(3)))
         elif m.group(2) == 'TMPL_LOOP' and m.group(1) == '/':
             return (Tokens.TMPL_LOOP_END, token)
         elif m.group(2) == 'TMPL_INCLUDE':
             return (Tokens.TMPL_INCLUDE, token, self._get_name(m.group(3)))
-        elif m.group(2) == 'TMPL_IF' and m.group(1) == None:
+        elif m.group(2) == 'TMPL_IF' and m.group(1) is None:
             return (Tokens.TMPL_IF, token, self._get_name(m.group(3)))
         elif m.group(2) == 'TMPL_IF' and m.group(1) == '/':
             return (Tokens.TMPL_IF_END, token)
         elif m.group(2) == 'TMPL_ELSE':
             return (Tokens.TMPL_ELSE, token)
-        elif m.group(2) == 'TMPL_UNLESS' and m.group(1) == None:
+        elif m.group(2) == 'TMPL_UNLESS' and m.group(1) is None:
             return (Tokens.TMPL_UNLESS, token, self._get_name(m.group(3)))
         elif m.group(2) == 'TMPL_UNLESS' and m.group(1) == '/':
             return (Tokens.TMPL_UNLESS_END, token)
@@ -106,13 +128,15 @@ class HtmlTemplate(object):
             return (Tokens.UNKNOWN, token)
 
     def _get_name(self, options):
-        m = re.search(r"NAME=(?:[\"'])?([0-9A-Za-z/\+\-_.]+)(?:[\"'])?", options)
+        m = re.search(r"NAME=(?:[\"'])?([0-9A-Za-z/\+\-_.]+)(?:[\"'])?",
+                      options)
         if not m:
             return None
         return m.group(1)
 
     def _get_escape(self, attributes):
-        m = re.search(r"ESCAPE=(?:[\"'])?(1|html|js|url|none)(?:[\"'])?", attributes)
+        m = re.search(r"ESCAPE=(?:[\"'])?(1|html|js|url|none)(?:[\"'])?",
+                      attributes)
         if not m:
             return None
         return m.group(1)
@@ -124,10 +148,9 @@ class HtmlTemplate(object):
         return m.group(1)
 
 
-
 class TokenHandler(object):
     def __init__(self):
-        self.stack  = []
+        self.stack = []
         self.buffer = []
 
     def get_template(self):
@@ -141,11 +164,13 @@ class TokenHandler(object):
 
     def tmpl_var(self, name, escape, default):
         if len(self.stack) > 0:
-            name = "{stack}.{name}".format(stack = self.stack[len(self.stack)-1], name = name)
+            last = len(self.stack) - 1
+            name = "{stack}.{name}".format(stack=self.stack[last], name=name)
 
         default_filter = ''
-        if default != None:
-            default_filter = "|default('{value}')".format(value=default.replace("'", "\'"))
+        if default is not None:
+            escaped_value = default.replace("'", "\'")
+            default_filter = "|default('{value}')".format(value=escaped_value)
 
         escape_filter = ''
         if escape == 'html' or escape == '1':
@@ -163,9 +188,12 @@ class TokenHandler(object):
     def tmpl_loop(self, name):
         items = name
         if len(self.stack) > 0:
-            items = "{stack}.{name}".format(stack=self.stack[len(self.stack)-1], name=name)
+            last = len(self.stack) - 1
+            items = "{stack}.{name}".format(stack=self.stack[last], name=name)
         item = "_for_object_{name}".format(name=name)
-        self.append('{%' + " for {item} in {items} ".format(items=items, item=item) + '%}')
+        self.append("{% "
+                    + "for {item} in {items}".format(items=items, item=item)
+                    + " %}")
         self.stack.append(item)
 
     def tmpl_loop_end(self):
@@ -176,7 +204,7 @@ class TokenHandler(object):
         self.append('{% include "' + name + '" %}')
 
     def tmpl_if(self, name):
-        self.append('{% if ' + name +  ' %}')
+        self.append('{% if ' + name + ' %}')
 
     def tmpl_if_end(self):
         self.append("{% endif %}")
@@ -185,7 +213,7 @@ class TokenHandler(object):
         self.append("{% else %}")
 
     def tmpl_unless(self, name):
-        self.append('{% if not ' + name +  ' %}')
+        self.append('{% if not ' + name + ' %}')
 
     def tmpl_unless_end(self):
         self.append("{% endif %}")

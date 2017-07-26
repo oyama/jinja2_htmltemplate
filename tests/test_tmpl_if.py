@@ -1,5 +1,6 @@
-from nose.tools import eq_
 from jinja2_htmltemplate.translate import HtmlTemplate
+from nose.tools import eq_
+
 
 def test_tmpl_if():
     t = HtmlTemplate()
