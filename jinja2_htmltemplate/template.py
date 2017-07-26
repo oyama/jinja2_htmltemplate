@@ -1,5 +1,6 @@
-from jinja2_htmltemplate.translate import HtmlTemplate
 import jinja2
+
+from jinja2_htmltemplate.translate import HtmlTemplate
 
 
 class Template(jinja2.Template):
