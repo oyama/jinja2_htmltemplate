@@ -62,6 +62,8 @@ class HtmlTemplate(object):
                 handler.tmpl_loop(token[TokenIndex.NAME])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_LOOP_END:
                 handler.tmpl_loop_end()
+            elif token[TokenIndex.TYPE] == Tokens.TMPL_INCLUDE:
+                handler.tmpl_include(token[TokenIndex.NAME])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_IF:
                 handler.tmpl_if(token[TokenIndex.NAME])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_IF_END:
@@ -73,7 +75,7 @@ class HtmlTemplate(object):
             elif token[TokenIndex.TYPE] == Tokens.TMPL_UNLESS_END:
                 handler.tmpl_unless_end()
             else:
-                handler.unknown(token[TokenIndex.TEXT])
+                handler.tmpl_unknown(token[TokenIndex.TEXT])
         return handler.get_template()
 
     def _parse_tmpl_token(self, token):
@@ -169,6 +171,9 @@ class TokenHandler(object):
     def tmpl_loop_end(self):
         self.append("{% endfor %}")
         self.stack.pop()
+
+    def tmpl_include(self, name):
+        self.append('{% include "' + name + '" %}')
 
     def tmpl_if(self, name):
         self.append('{% if ' + name +  ' %}')
