@@ -22,6 +22,7 @@ class TokenIndex(enum.IntFlag):
     NAME = 2
     ESCAPE = 3
     DEFAULT = 4
+    VALUE = 3
 
 
 html_template_tokenizer_re = re.compile(
@@ -85,7 +86,7 @@ class HtmlTemplate(object):
             elif token[TokenIndex.TYPE] == Tokens.TMPL_INCLUDE:
                 handler.tmpl_include(token[TokenIndex.NAME])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_IF:
-                handler.tmpl_if(token[TokenIndex.NAME])
+                handler.tmpl_if(token[TokenIndex.NAME], token[TokenIndex.VALUE])
             elif token[TokenIndex.TYPE] == Tokens.TMPL_IF_END:
                 handler.tmpl_if_end()
             elif token[TokenIndex.TYPE] == Tokens.TMPL_ELSE:
@@ -115,7 +116,8 @@ class HtmlTemplate(object):
         elif m.group(2) == 'TMPL_INCLUDE':
             return (Tokens.TMPL_INCLUDE, token, self._get_name(m.group(3)))
         elif m.group(2) == 'TMPL_IF' and m.group(1) is None:
-            return (Tokens.TMPL_IF, token, self._get_name(m.group(3)))
+            return (Tokens.TMPL_IF, token, self._get_name(m.group(3)),
+                    self._get_value(m.group(3)))
         elif m.group(2) == 'TMPL_IF' and m.group(1) == '/':
             return (Tokens.TMPL_IF_END, token)
         elif m.group(2) == 'TMPL_ELSE':
@@ -143,6 +145,13 @@ class HtmlTemplate(object):
 
     def _get_default(self, attributes):
         m = re.search(r'DEFAULT=\"([^"]+)"', attributes)
+        if not m:
+            return None
+        return m.group(1)
+
+    def _get_value(self, options):
+        m = re.search(r"VALUE=(?:[\"'])?([0-9A-Za-z/\+\-_.]+)(?:[\"'])?",
+                      options)
         if not m:
             return None
         return m.group(1)
@@ -203,8 +212,12 @@ class TokenHandler(object):
     def tmpl_include(self, name):
         self.append('{% include "' + name + '" %}')
 
-    def tmpl_if(self, name):
-        self.append('{% if ' + name + ' %}')
+    def tmpl_if(self, name, value=None):
+        if value is not None:
+            value = value.replace('"', '\"')
+            self.append('{% if ' + name + ' == "' + value + '" %}')
+        else:
+            self.append('{% if ' + name + ' %}')
 
     def tmpl_if_end(self):
         self.append("{% endif %}")
